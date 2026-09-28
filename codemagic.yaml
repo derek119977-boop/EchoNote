@@ -3,12 +3,15 @@ workflows:
     name: EchoNote iOS
     max_build_duration: 30
     instance_type: mac_mini_m2
+
     environment:
       xcode: latest
+
     scripts:
       - name: Inspect project
         script: |
           xcodebuild -project EchoNote.xcodeproj -scheme EchoNote -showBuildSettings
+
       - name: Build unsigned iPhone app
         script: |
           xcodebuild \
@@ -21,14 +24,29 @@ workflows:
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGN_IDENTITY="" \
             build
+
       - name: Package IPA
         script: |
+          echo "=== GENERATED INFO.PLIST ==="
+          plutil -p build/Build/Products/Release-iphoneos/EchoNote.app/Info.plist
+
+          echo "=== EXECUTABLE INFO ==="
+          file build/Build/Products/Release-iphoneos/EchoNote.app/EchoNote
+
+          echo "=== APP DIRECTORY ==="
+          ls -la build/Build/Products/Release-iphoneos/EchoNote.app
+
+          echo "=== SIGNATURE STATUS ==="
+          codesign -dvvv build/Build/Products/Release-iphoneos/EchoNote.app 2>&1 || true
+
           rm -rf Payload EchoNote-unsigned.ipa
           mkdir Payload
           ditto build/Build/Products/Release-iphoneos/EchoNote.app Payload/EchoNote.app
           /usr/bin/zip -qry EchoNote-unsigned.ipa Payload
+
           echo "=== IPA CONTENTS ==="
           unzip -l EchoNote-unsigned.ipa | head -30
+
     artifacts:
       - EchoNote-unsigned.ipa
       - build/Build/Products/Release-iphoneos/EchoNote.app

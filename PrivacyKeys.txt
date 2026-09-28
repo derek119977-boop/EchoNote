@@ -1,7 +1,0 @@
-Add these to the app target's Info settings:
-
-Privacy - Microphone Usage Description
-EchoNote needs microphone access to record your notes.
-
-Privacy - Speech Recognition Usage Description
-EchoNote uses speech recognition to transcribe your recordings.

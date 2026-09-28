@@ -2,58 +2,45 @@ import AVFoundation
 import Foundation
 import Observation
 
-@MainActor
-@Observable
-final class AudioRecorder {
+@MainActor @Observable
+final class AudioRecorder: NSObject, AVAudioRecorderDelegate {
     var isRecording = false
     var elapsed: TimeInterval = 0
-
+    var errorMessage: String?
     private var recorder: AVAudioRecorder?
     private var timer: Timer?
-    private var startedAt: Date?
 
     func requestPermission() async -> Bool {
-        await AVAudioApplication.requestRecordPermission()
+        let granted = await AVAudioApplication.requestRecordPermission()
+        if !granted { errorMessage = "Microphone access is off. Open Settings → Privacy & Security → Microphone and enable EchoNote." }
+        return granted
     }
 
     func start() throws {
-        let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-        let dir = docs.appendingPathComponent("Recordings", isDirectory: true)
-        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
-        let url = dir.appendingPathComponent("\(UUID().uuidString).m4a")
-
+        errorMessage = nil
         let session = AVAudioSession.sharedInstance()
-        try session.setCategory(.record, mode: .spokenAudio)
-        try session.setActive(true)
-
-        recorder = try AVAudioRecorder(url: url, settings: [
-            AVFormatIDKey: Int(kAudioFormatMPEG4AAC),
-            AVSampleRateKey: 44100.0,
-            AVNumberOfChannelsKey: 1,
-            AVEncoderAudioQualityKey: AVAudioQuality.high.rawValue
-        ])
-        recorder?.record()
-        startedAt = .now
-        elapsed = 0
-        isRecording = true
-
-        timer = Timer.scheduledTimer(withTimeInterval: 0.25, repeats: true) { [weak self] _ in
-            Task { @MainActor in
-                guard let self, let start = self.startedAt else { return }
-                self.elapsed = Date().timeIntervalSince(start)
-            }
-        }
+        try session.setCategory(.playAndRecord, mode: .spokenAudio, options: [.defaultToSpeaker, .allowBluetoothHFP])
+        try session.setActive(true, options: .notifyOthersOnDeactivation)
+        let dir = Self.recordingsDirectory
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        let url = dir.appendingPathComponent(UUID().uuidString).appendingPathExtension("m4a")
+        let settings: [String: Any] = [AVFormatIDKey:Int(kAudioFormatMPEG4AAC), AVSampleRateKey:44100.0, AVNumberOfChannelsKey:1, AVEncoderBitRateKey:128000, AVEncoderAudioQualityKey:AVAudioQuality.high.rawValue]
+        let r = try AVAudioRecorder(url: url, settings: settings); r.delegate = self; r.isMeteringEnabled = true
+        guard r.prepareToRecord(), r.record() else { throw RecorderError.startFailed }
+        recorder = r; elapsed = 0; isRecording = true
+        timer?.invalidate(); timer = Timer.scheduledTimer(withTimeInterval: 0.2, repeats: true) { [weak self] _ in Task { @MainActor in self?.elapsed = self?.recorder?.currentTime ?? 0 } }
     }
 
-    func stop() -> (URL, Double)? {
-        guard let recorder else { return nil }
-        let result = (recorder.url, elapsed)
-        recorder.stop()
-        self.recorder = nil
-        timer?.invalidate()
-        timer = nil
-        isRecording = false
-        try? AVAudioSession.sharedInstance().setActive(false)
+    func stop() -> RecordingResult? {
+        guard let r = recorder else { return nil }
+        let result = RecordingResult(url: r.url, duration: r.currentTime)
+        r.stop(); recorder=nil; timer?.invalidate(); timer=nil; isRecording=false; elapsed=result.duration
+        try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
         return result
     }
+
+    static var recordingsDirectory: URL { FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0].appendingPathComponent("Recordings", isDirectory: true) }
+    static func url(for filename: String) -> URL { recordingsDirectory.appendingPathComponent(filename) }
 }
+struct RecordingResult { let url: URL; let duration: Double }
+enum RecorderError: LocalizedError { case startFailed; var errorDescription: String? { "EchoNote could not start the microphone." } }

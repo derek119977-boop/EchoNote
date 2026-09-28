@@ -1,61 +1,27 @@
 workflows:
   echonote-ios:
-    name: EchoNote iOS
+    name: EchoNote 2.0 iOS
     max_build_duration: 30
     instance_type: mac_mini_m2
-
     environment:
       xcode: latest
-
     scripts:
       - name: Inspect project
         script: |
           xcodebuild -project EchoNote.xcodeproj -scheme EchoNote -showBuildSettings
-
-      - name: Build unsigned iPhone app
+      - name: Build iPhone app
         script: |
-          xcodebuild \
-            -project EchoNote.xcodeproj \
-            -scheme EchoNote \
-            -configuration Release \
-            -sdk iphoneos \
-            -derivedDataPath build \
-            CODE_SIGNING_ALLOWED=NO \
-            CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGN_IDENTITY="" \
-            build
-
+          xcodebuild -project EchoNote.xcodeproj -scheme EchoNote -configuration Release -sdk iphoneos -derivedDataPath build CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" build
       - name: Ad-hoc sign and package IPA
         script: |
           APP="build/Build/Products/Release-iphoneos/EchoNote.app"
-
-          echo "=== BEFORE SIGNING ==="
-          codesign -dvvv "$APP" 2>&1 || true
-
-          echo "=== APPLYING AD-HOC SIGNATURE ==="
           codesign --force --sign - "$APP"
-
-          echo "=== AFTER SIGNING ==="
-          codesign -dvvv "$APP" 2>&1
           codesign --verify --verbose=4 "$APP"
-
-          echo "=== GENERATED INFO.PLIST ==="
-          plutil -p "$APP/Info.plist"
-
-          echo "=== EXECUTABLE INFO ==="
-          file "$APP/EchoNote"
-
-          echo "=== APP DIRECTORY ==="
-          ls -la "$APP"
-
-          rm -rf Payload EchoNote-adhoc.ipa
+          rm -rf Payload EchoNote-2.0.ipa
           mkdir Payload
           ditto "$APP" Payload/EchoNote.app
-          /usr/bin/zip -qry EchoNote-adhoc.ipa Payload
-
-          echo "=== IPA CONTENTS ==="
-          unzip -l EchoNote-adhoc.ipa | head -40
-
+          /usr/bin/zip -qry EchoNote-2.0.ipa Payload
+          unzip -l EchoNote-2.0.ipa | head -60
     artifacts:
-      - EchoNote-adhoc.ipa
+      - EchoNote-2.0.ipa
       - build/Build/Products/Release-iphoneos/EchoNote.app

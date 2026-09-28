@@ -1,7 +1,7 @@
-# EchoNote
+# EchoNote 2.0
+Native standalone iOS app.
 
-Standalone native iOS EchoNote.
+Features: local audio recording, General/Sermon modes, speech transcription, Apple Intelligence note organization when available, SwiftData note library, search/filter, playback, favorites, share/delete, appearance and storage settings.
 
-Bundle identifier: `com.echonote`
-
-The included Codemagic workflow builds an unsigned IPA. A sideload signing service/tool must sign the IPA with a valid Apple certificate/profile before installation.
+Bundle ID: com.echonote
+Deployment target: iOS 26.0

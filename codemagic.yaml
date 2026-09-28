@@ -25,28 +25,37 @@ workflows:
             CODE_SIGN_IDENTITY="" \
             build
 
-      - name: Package IPA
+      - name: Ad-hoc sign and package IPA
         script: |
+          APP="build/Build/Products/Release-iphoneos/EchoNote.app"
+
+          echo "=== BEFORE SIGNING ==="
+          codesign -dvvv "$APP" 2>&1 || true
+
+          echo "=== APPLYING AD-HOC SIGNATURE ==="
+          codesign --force --sign - "$APP"
+
+          echo "=== AFTER SIGNING ==="
+          codesign -dvvv "$APP" 2>&1
+          codesign --verify --verbose=4 "$APP"
+
           echo "=== GENERATED INFO.PLIST ==="
-          plutil -p build/Build/Products/Release-iphoneos/EchoNote.app/Info.plist
+          plutil -p "$APP/Info.plist"
 
           echo "=== EXECUTABLE INFO ==="
-          file build/Build/Products/Release-iphoneos/EchoNote.app/EchoNote
+          file "$APP/EchoNote"
 
           echo "=== APP DIRECTORY ==="
-          ls -la build/Build/Products/Release-iphoneos/EchoNote.app
+          ls -la "$APP"
 
-          echo "=== SIGNATURE STATUS ==="
-          codesign -dvvv build/Build/Products/Release-iphoneos/EchoNote.app 2>&1 || true
-
-          rm -rf Payload EchoNote-unsigned.ipa
+          rm -rf Payload EchoNote-adhoc.ipa
           mkdir Payload
-          ditto build/Build/Products/Release-iphoneos/EchoNote.app Payload/EchoNote.app
-          /usr/bin/zip -qry EchoNote-unsigned.ipa Payload
+          ditto "$APP" Payload/EchoNote.app
+          /usr/bin/zip -qry EchoNote-adhoc.ipa Payload
 
           echo "=== IPA CONTENTS ==="
-          unzip -l EchoNote-unsigned.ipa | head -30
+          unzip -l EchoNote-adhoc.ipa | head -40
 
     artifacts:
-      - EchoNote-unsigned.ipa
+      - EchoNote-adhoc.ipa
       - build/Build/Products/Release-iphoneos/EchoNote.app

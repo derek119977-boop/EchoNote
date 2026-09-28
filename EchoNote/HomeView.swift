@@ -30,13 +30,13 @@ struct HomeView: View {
     private var recorderCard: some View {
         VStack(spacing:18) {
             ZStack { Circle().fill(Color.blue.opacity(0.09)).frame(width:178,height:178); Circle().stroke(Color.blue.opacity(0.18),lineWidth:1).frame(width:150,height:150)
-                Button { Task { await recordTapped() } } label: { ZStack { Circle().fill(recorder.isRecording ? Color.red : Color.blue).frame(width:108,height:108).shadow(color:(recorder.isRecording ? Color.red:Color.blue).opacity(.25),radius:18,y:8); Image(systemName:recorder.isRecording ? "stop.fill":"mic.fill").font(.system(size:38,weight:.semibold)).foregroundStyle(.white) } }.disabled(processing)
+                Button { Task { await recordTapped() } } label: { ZStack { Circle().fill(recorder.isRecording ? Color.red : Color.blue).frame(width:108,height:108).shadow(color:(recorder.isRecording ? Color.red:Color.blue).opacity(0.25),radius:18,y:8); Image(systemName:recorder.isRecording ? "stop.fill":"mic.fill").font(.system(size:38,weight:.semibold)).foregroundStyle(.white) } }.disabled(processing)
             }
             Text(recorder.isRecording ? time(recorder.elapsed) : processing ? "Working on your note…" : status).font(.headline)
             if recorder.isRecording { Text("Tap to finish recording").font(.caption).foregroundStyle(.secondary) }
             else { Text(mode == .sermon ? "Sermon mode organizes Scripture, key points and takeaways." : "Record a thought, meeting, reminder or idea.").multilineTextAlignment(.center).font(.subheadline).foregroundStyle(.secondary) }
             if processing { ProgressView().controlSize(.large) }
-        }.frame(maxWidth:.infinity).padding(.vertical,26).padding(.horizontal,20).background(.ultraThinMaterial,in:RoundedRectangle(cornerRadius:30,style:.continuous)).overlay(RoundedRectangle(cornerRadius:30).stroke(.white.opacity(.18))).padding(.horizontal)
+        }.frame(maxWidth:.infinity).padding(.vertical,26).padding(.horizontal,20).background(.ultraThinMaterial,in:RoundedRectangle(cornerRadius:30,style:.continuous)).overlay(RoundedRectangle(cornerRadius:30).stroke(.white.opacity(0.18))).padding(.horizontal)
     }
 
     private var recent: some View { VStack(alignment:.leading,spacing:12){ HStack { Text("Recent Notes").font(.title3.bold()); Spacer(); Button("See All",action:goToLibrary) }.padding(.horizontal)
